@@ -56,21 +56,21 @@ osThreadId_t OutputHandle;
 const osThreadAttr_t Output_attributes = {
   .name = "Output",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal2,
 };
 /* Definitions for ZPID */
 osThreadId_t ZPIDHandle;
 const osThreadAttr_t ZPID_attributes = {
   .name = "ZPID",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal1,
 };
 /* Definitions for XPID */
 osThreadId_t XPIDHandle;
 const osThreadAttr_t XPID_attributes = {
   .name = "XPID",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityNormal1,
 };
 /* USER CODE BEGIN PV */
 static int target_height = 30;
@@ -298,7 +298,7 @@ void ReadAndProcess_Handle(void *argument)
   {
 	if(end)
 	{
-		break;
+		osThreadTerminate(ReadAndProcessHandle);
 	}
 	BSP_GYRO_GetXYZ(pfData);
 	pfData[1] = pfData[1] * 17.5 * 0.001;
@@ -333,6 +333,7 @@ void Output_handle(void *argument)
 {
   /* USER CODE BEGIN Output_handle */
   char data[20];
+  char usb[20];
   int old_score = 0;
   /* Infinite loop */
   for(;;)
@@ -343,7 +344,7 @@ void Output_handle(void *argument)
 		BSP_LCD_DisplayStringAtLine(1, (uint8_t*)"GAMEOVER");
 		HAL_GPIO_WritePin(LED_3_GPIO_Port, LED_3_Pin, 0);
 		HAL_GPIO_WritePin(LED_4_GPIO_Port, LED_4_Pin, 1);
-		break;
+		osThreadTerminate(OutputHandle);
 	}
 	if(score != old_score)
 	{
@@ -356,8 +357,8 @@ void Output_handle(void *argument)
 	}
 	sprintf(data, "Score: %d", score);
 	BSP_LCD_DisplayStringAtLine(1, (uint8_t*)data);
-	sprintf(data, "%d\n", current_height);
-	CDC_Transmit_HS((uint8_t*)data, 20);
+	sprintf(usb, "%d\n", current_height);
+	CDC_Transmit_HS((uint8_t*)usb, 20);
 	for(int i = 2; i <= 11; i++)
 	{
 		BSP_LCD_ClearStringLine(i);
@@ -393,7 +394,7 @@ void ZPID_handle(void *argument)
 	if(current_height < 30)
 	{
 		end = 1;
-		break;
+		osThreadTerminate(ZPIDHandle);
 	}
     osDelay(100);
   }
@@ -417,7 +418,7 @@ void XPID_handle(void *argument)
   {
 	if(end)
 	{
-	 break;
+		osThreadTerminate(XPIDHandle);
 	}
 	int error = target_width - current_width;
 	float P = Kp * error;
